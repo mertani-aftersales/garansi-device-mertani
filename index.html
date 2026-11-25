@@ -59,6 +59,10 @@ label{display:block;font-size:13px;color:var(--mu);margin:10px 0 3px}
 .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 .note{font-size:12px;color:var(--mu);margin-top:14px;text-align:center}
 .hint{font-size:12px;color:var(--mu);margin-top:4px}
+.pw{position:relative}.pw input{padding-right:46px}
+.pw .eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:transparent;padding:6px 8px;display:flex;align-items:center;color:var(--mu)}
+.pw .eye:hover{border:0;color:var(--pr)}
+.pw .eye svg{width:20px;height:20px;display:block}
 </style>
 </head>
 <body>
@@ -70,18 +74,21 @@ label{display:block;font-size:13px;color:var(--mu);margin:10px 0 3px}
 <div id="tabs" class="tabs"><button type="button" id="tM" class="tab act" onclick="tab('m')">Isi manual</button><button type="button" id="tI" class="tab" onclick="tab('i')">Impor dari Google Spreadsheet</button></div>
 <div id="paneM">
 <label>ID Device *</label><input id="fId">
-<label>Nama / tipe device</label><input id="fNama" placeholder="mis. Logger AWLR">
+<label>Jenis device</label><select id="fJenis" onchange="onJenis()"></select>
+<input id="fJenisBaru" placeholder="Tulis nama jenis device baru" style="margin-top:6px" hidden>
 <label>Nama instansi *</label><input id="fIns">
 <label>Nama pos</label><input id="fPos">
 <div class="two"><div><label>Tanggal pemasangan</label><input id="fPasang" type="date"></div>
-<div><label>Garansi alat berakhir</label><input id="fGar" type="date"></div></div>
+<div><label>Lama garansi alat</label><select id="fBln"></select></div></div>
+<label>Garansi alat berakhir</label><input id="fGar" type="date">
+<div class="hint">Isi tanggal pemasangan lalu pilih lama garansi (1–12 bulan) agar tanggal berakhir terisi otomatis. Tanggal tetap bisa diubah manual.</div>
 <div class="acts"><button type="button" onclick="dDev.close()">Batal</button><button type="button" class="p" id="saveDev">Simpan</button></div>
 </div>
 <div id="paneI" hidden>
 <div class="hint" style="margin-top:6px"><b>Cara 1 – Salin dan tempel.</b> Di Google Spreadsheet, blok semua sel termasuk baris judul kolom, salin (Ctrl+C), lalu tempel di bawah.</div>
 <label>Jenis data</label><select id="pasteType"><option value="device">Data device</option><option value="mnt">Catatan maintenance</option></select>
 <label>Tempel data di sini</label><textarea id="pasteBox" rows="6"></textarea>
-<div class="hint">Judul kolom <b>Device</b>: ID Device, Nama Device, Instansi, Pos, Tanggal Pemasangan, Garansi Alat Berakhir.<br>Judul kolom <b>Maintenance</b>: ID Device, Tanggal Maintenance, Tindakan, Garansi Repair Berakhir, Lama Garansi Repair (bulan). Jika tanggal berakhir kosong, tanggal dihitung dari lama garansi (1–12 bulan).</div>
+<div class="hint">Judul kolom <b>Device</b>: ID Device, Jenis Device, Instansi, Pos, Tanggal Pemasangan, Garansi Alat Berakhir.<br>Judul kolom <b>Maintenance</b>: ID Device, Tanggal Maintenance, Tindakan, Garansi Repair Berakhir, Lama Garansi Repair (bulan). Jika tanggal berakhir kosong, tanggal dihitung dari lama garansi (1–12 bulan).</div>
 <div class="acts"><button type="button" class="p" id="doPaste">Impor data tempel</button></div>
 <div class="hint" style="margin-top:14px"><b>Cara 2 – Unggah file.</b> Di Google Spreadsheet pilih File › Unduh › Microsoft Excel (.xlsx). Beri nama sheet <i>Device</i> dan <i>Maintenance</i>.</div>
 <div class="acts"><button type="button" onclick="$('file').click()">Pilih file .xlsx / .csv</button><button type="button" onclick="dDev.close()">Tutup</button></div>
@@ -154,12 +161,21 @@ function doLogin(){
     render();
   });
 }
+var EYE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+var EYEOFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.9 10.9 0 0 1 12 19c-7 0-11-7-11-7a19.8 19.8 0 0 1 5.06-5.94"/><path d="M9.9 4.24A10.9 10.9 0 0 1 12 4c7 0 11 7 11 7a19.9 19.9 0 0 1-3.17 4.19"/><path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+function togglePw(){
+  var i=$("pwIn"),e=$("pwEye"),show=i.type==="password";
+  i.type=show?"text":"password";
+  e.innerHTML=show?EYEOFF:EYE;
+  e.setAttribute("aria-label",show?"Sembunyikan kata sandi":"Tampilkan kata sandi");
+  i.focus();
+}
 function loginView(){
   var bad=/^GANTI/.test(API_URL);
-  $("app").innerHTML='<header><img src="'+LOGO+'" alt="Mertani"><div><h1>Monitoring Garansi Device</h1><div class="sub">PT Merapi Tani Instrument · After Sales</div></div></header>'+
+  $("app").innerHTML='<header><img src="'+LOGO+'" alt="Mertani"><div><h1>Monitoring Garansi Device</h1><div class="sub">PT Merapi Tani Instrument · After Sales Departemen</div></div></header>'+
     '<div class="panel" style="max-width:380px;margin:30px auto"><h2>Masuk</h2>'+
     (bad?'<div class="ro">Alamat server belum diatur. Isi variabel API_URL di bagian atas script file ini.</div>':'')+
-    '<label>Kata sandi</label><input id="pwIn" type="password" autocomplete="current-password">'+
+    '<label>Kata sandi</label><div class="pw"><input id="pwIn" type="password" autocomplete="current-password"><button type="button" id="pwEye" class="eye" aria-label="Tampilkan kata sandi" onclick="togglePw()">'+EYE+'</button></div>'+
     '<div class="hint">Sandi editor untuk mengubah data, sandi viewer untuk melihat saja.</div>'+
     '<div class="acts"><button class="p" onclick="doLogin()">Masuk</button></div>'+
     '<div class="hint" style="color:var(--er)">'+esc(authErr)+'</div></div>';
@@ -176,7 +192,7 @@ function readB64(f){return new Promise(function(ok,no){var r=new FileReader();r.
 /* ---- views ---- */
 function render(){
   if(!loggedIn){loginView();return}
-  var h='<header><img src="'+LOGO+'" alt="Mertani"><div><h1>Monitoring Garansi Device</h1><div class="sub">PT Merapi Tani Instrument · After Sales</div></div>'+'<button class="s" style="margin-left:auto" onclick="logout()">Keluar</button></header>';
+  var h='<header><img src="'+LOGO+'" alt="Mertani"><div><h1>Monitoring Garansi Device</h1><div class="sub">PT Merapi Tani Instrument · After Sales Departemen</div></div>'+'<button class="s" style="margin-left:auto" onclick="logout()">Keluar</button></header>';
   if(!sel&&W())h+='<div class="bar"><button class="p" onclick="openDev()">+ Tambah device</button></div>';
   if(!W())h+='<div class="ro">Mode lihat saja: hanya tim after sales yang dapat menambah atau mengubah data.</div>';
   h+=sel?detail():dash();
@@ -200,7 +216,7 @@ function list(){
   var r=devices.filter(function(d){
     if(filt!=="all"&&st(d.garansiAlat).c!==filt)return false;
     if(fIns&&d.instansi!==fIns)return false;
-    return!k||[d.deviceId,d.instansi,d.pos].some(function(v){return String(v||"").toLowerCase().indexOf(k)>-1});
+    return!k||[d.deviceId,d.jenis,d.instansi,d.pos].some(function(v){return String(v||"").toLowerCase().indexOf(k)>-1});
   });
   r.sort(function(a,b){
     if(sortBy==="habis"){var x=a.garansiAlat||"9999",y=b.garansiAlat||"9999";if(x!==y)return x<y?-1:1}
@@ -210,7 +226,7 @@ function list(){
   if(!r.length)return'<div class="empty">'+(devices.length?"Tidak ada device yang cocok dengan pencarian atau filter.":"Belum ada data."+(W()?" Klik “+ Tambah device” atau “Impor Excel” untuk mulai.":""))+'</div>';
   return r.map(function(d){
     var s=st(d.garansiAlat);
-    return'<button class="item" onclick="openD(\''+esc(d.key)+'\')"><div><div class="id">'+esc(d.deviceId)+(d.nama?' · '+esc(d.nama):'')+'</div><div class="m">'+esc(d.instansi)+(d.pos?' — Pos '+esc(d.pos):'')+'</div></div><span class="badge '+s.c+'">'+s.l+'</span></button>';
+    return'<button class="item" onclick="openD(\''+esc(d.key)+'\')"><div><div class="id">'+esc(d.deviceId)+'</div><div class="m">'+(d.jenis?esc(d.jenis)+' · ':'')+esc(d.instansi)+(d.pos?' — Pos '+esc(d.pos):'')+'</div></div><span class="badge '+s.c+'">'+s.l+'</span></button>';
   }).join("");
 }
 function onQ(v){q=v;$("list").innerHTML=list()}
@@ -226,8 +242,8 @@ function detail(){
   if(!d)return"";
   var hs=hists(d),l=hs[0];
   var h='<button class="back s" onclick="back()">← Kembali ke dashboard</button>';
-  h+='<div class="panel"><div class="row"><h2 style="margin:0">'+esc(d.deviceId)+(d.nama?' · '+esc(d.nama):'')+'</h2>'+(W()?'<div><button class="s" onclick="openDev(\''+esc(d.key)+'\')">Edit</button> <button class="s d" onclick="del(\''+esc(d.key)+'\')">Hapus</button></div>':'')+'</div>';
-  h+='<div class="kv" style="margin-top:12px"><div><span>Instansi</span>'+esc(d.instansi)+'</div><div><span>Pos</span>'+esc(d.pos||"-")+'</div><div><span>Tanggal pemasangan</span>'+fmt(d.tglPasang)+'</div></div></div>';
+  h+='<div class="panel"><div class="row"><h2 style="margin:0">'+esc(d.deviceId)+'</h2>'+(W()?'<div><button class="s" onclick="openDev(\''+esc(d.key)+'\')">Edit</button> <button class="s d" onclick="del(\''+esc(d.key)+'\')">Hapus</button></div>':'')+'</div>';
+  h+='<div class="kv" style="margin-top:12px"><div><span>Jenis device</span>'+esc(d.jenis||"-")+'</div><div><span>Instansi</span>'+esc(d.instansi)+'</div><div><span>Pos</span>'+esc(d.pos||"-")+'</div><div><span>Tanggal pemasangan</span>'+fmt(d.tglPasang)+'</div></div></div>';
   h+='<div class="panel"><h2>Status garansi</h2><div class="gar">'+gb("Garansi alat / device",d.garansiAlat)+(l?gb("Garansi repair (setelah maintenance "+fmt(l.tgl)+")",l.garansiRepair):'<div class="gb na"><h3>Garansi repair</h3><b>Belum pernah maintenance</b></div>')+'</div></div>';
   h+='<div class="panel"><h2>Maintenance terakhir</h2>';
   if(l)h+='<dl class="last" style="margin:0"><dt>Tanggal</dt><dd>'+fmt(l.tgl)+'</dd><dt>Tindakan</dt><dd>'+esc(l.tindakan)+'</dd><dt>Berita acara</dt><dd>'+attLink(l.att)+'</dd></dl>';
@@ -243,6 +259,17 @@ function detail(){
 /* ---- forms ---- */
 var editKey=null;
 (function(){var o='<option value="">Isi manual</option>';for(var i=1;i<=12;i++)o+='<option value="'+i+'">'+i+' bulan</option>';$("mBln").innerHTML=o})();
+(function(){var o='<option value="">Isi manual</option>';for(var i=1;i<=12;i++)o+='<option value="'+i+'">'+i+' bulan</option>';$("fBln").innerHTML=o})();
+function autoGar(){var n=+$("fBln").value,t=$("fPasang").value;if(n&&t)$("fGar").value=addMonths(t,n)}
+$("fBln").onchange=autoGar;$("fPasang").onchange=autoGar;
+var JENIS=["AWLR","AWS","ARR","AQMS","WQMS","Soil Custom"];
+function jenisOpts(cur){
+  var l=JENIS.slice();
+  devices.forEach(function(d){if(d.jenis&&l.indexOf(d.jenis)<0)l.push(d.jenis)});
+  if(cur&&l.indexOf(cur)<0)l.push(cur);
+  return'<option value="">Pilih jenis device</option>'+l.map(function(j){return'<option value="'+esc(j)+'"'+(j===cur?' selected':'')+'>'+esc(j)+'</option>'}).join("")+'<option value="__new">+ Buat jenis baru…</option>';
+}
+function onJenis(){var n=$("fJenis").value==="__new";$("fJenisBaru").hidden=!n;if(n)$("fJenisBaru").focus()}
 function autoRep(){var n=+$("mBln").value,t=$("mTgl").value;if(n&&t)$("mRep").value=addMonths(t,n)}
 $("mBln").onchange=autoRep;$("mTgl").onchange=autoRep;
 function tab(x){$("paneM").hidden=x!=="m";$("paneI").hidden=x!=="i";$("tM").classList.toggle("act",x==="m");$("tI").classList.toggle("act",x==="i")}
@@ -250,16 +277,19 @@ function openDev(k){
   $("tabs").style.display=k?"none":"";tab("m");
   editKey=k||null;var d=k?devices.filter(function(x){return x.key===k})[0]:{};
   $("dDevT").textContent=k?"Edit device":"Tambah device";
-  $("fId").value=d.deviceId||"";$("fNama").value=d.nama||"";$("fIns").value=d.instansi||"";
+  $("fId").value=d.deviceId||"";$("fIns").value=d.instansi||"";
+  $("fJenis").innerHTML=jenisOpts(d.jenis||"");$("fJenisBaru").value="";$("fJenisBaru").hidden=true;$("fBln").value="";
   $("fPos").value=d.pos||"";$("fPasang").value=d.tglPasang||"";$("fGar").value=d.garansiAlat||"";
   $("fId").disabled=!!k;dDev.showModal();
 }
 $("saveDev").onclick=function(){
   var id=$("fId").value.trim(),ins=$("fIns").value.trim();
   if(!id||!ins){alert("ID device dan nama instansi wajib diisi.");return}
+  var jn=$("fJenis").value==="__new"?$("fJenisBaru").value.trim():$("fJenis").value;
+  if($("fJenis").value==="__new"&&!jn){alert("Tulis nama jenis device baru, atau pilih salah satu jenis.");return}
   var old=editKey?devices.filter(function(x){return x.key===editKey})[0]:null,key=editKey||slug(id);
   if(!editKey&&devices.some(function(x){return x.key===key})){alert("ID device sudah terdaftar.");return}
-  guard(save({key:key,deviceId:id,nama:$("fNama").value.trim(),instansi:ins,pos:$("fPos").value.trim(),tglPasang:$("fPasang").value,garansiAlat:$("fGar").value,riwayat:old?(old.riwayat||[]):[]}));
+  guard(save({key:key,deviceId:id,jenis:jn,instansi:ins,pos:$("fPos").value.trim(),tglPasang:$("fPasang").value,garansiAlat:$("fGar").value,riwayat:old?(old.riwayat||[]):[]}));
   dDev.close();
 };
 function showAtt(){
@@ -361,7 +391,7 @@ function runImport(D,M){
     if(!id||!ins){skip++;return}
     var k=slug(id),o=map[k];
     if(o)updN++;else{newN++;o={key:k,riwayat:[]}}
-    o.deviceId=id;o.nama=String(g(r,"Nama Device")).trim();o.instansi=ins;o.pos=String(g(r,"Pos")).trim();
+    o.deviceId=id;o.jenis=String(g(r,"Jenis Device")).trim()||o.jenis||"";o.instansi=ins;o.pos=String(g(r,"Pos")).trim();
     o.tglPasang=pd(g(r,"Tanggal Pemasangan"));o.garansiAlat=pd(g(r,"Garansi Alat Berakhir"));
     map[k]=o;touched[k]=1;
   });
